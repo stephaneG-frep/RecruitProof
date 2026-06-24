@@ -16,6 +16,7 @@ class JournalScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'journal_add_activity',
         onPressed: () => _openForm(context),
         icon: const Icon(Icons.add),
         label: const Text('Nouvelle activité'),

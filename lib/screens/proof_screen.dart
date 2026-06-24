@@ -15,6 +15,7 @@ class ProofScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'proof_add_file',
         onPressed: () => context.read<ProofProvider>().pickAndSave(),
         icon: const Icon(Icons.add_photo_alternate_outlined),
         label: const Text('Ajouter une preuve'),

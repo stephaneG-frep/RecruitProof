@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/dashboard_screen.dart';
+import 'screens/help_screen.dart';
 import 'screens/journal_screen.dart';
 import 'screens/proof_screen.dart';
 import 'screens/report_screen.dart';
@@ -132,6 +133,13 @@ class _AppShellState extends State<AppShell> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Mode d’emploi',
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const HelpScreen())),
+            icon: const Icon(Icons.help_outline),
+          ),
           IconButton(
             tooltip: widget.themeMode == ThemeMode.dark
                 ? 'Mode clair'
