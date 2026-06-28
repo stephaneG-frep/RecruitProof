@@ -26,6 +26,8 @@ class _ReportScreenState extends State<ReportScreen> {
   final _applicationsCount = TextEditingController();
   final _followUpsCount = TextEditingController();
   final _interviewsCount = TextEditingController();
+  final _reportHours = TextEditingController();
+  final _reportMinutes = TextEditingController();
   late DateTime _start;
   late DateTime _end;
   bool _generating = false;
@@ -45,6 +47,8 @@ class _ReportScreenState extends State<ReportScreen> {
     _applicationsCount.dispose();
     _followUpsCount.dispose();
     _interviewsCount.dispose();
+    _reportHours.dispose();
+    _reportMinutes.dispose();
     super.dispose();
   }
 
@@ -111,6 +115,8 @@ class _ReportScreenState extends State<ReportScreen> {
                       applications: _applicationsCount,
                       followUps: _followUpsCount,
                       interviews: _interviewsCount,
+                      reportHours: _reportHours,
+                      reportMinutes: _reportMinutes,
                     ),
                     const SizedBox(height: 20),
                     _Summary(
@@ -133,7 +139,8 @@ class _ReportScreenState extends State<ReportScreen> {
                               0,
                               (sum, item) => sum + item.durationMinutes,
                             ),
-                          ),
+                          ) +
+                          _manualReportDuration(),
                     ),
                     const SizedBox(height: 18),
                     _SourceImportsCard(
@@ -267,6 +274,7 @@ class _ReportScreenState extends State<ReportScreen> {
         manualApplications: _optionalInt(_applicationsCount.text),
         manualFollowUps: _optionalInt(_followUpsCount.text),
         manualInterviews: _optionalInt(_interviewsCount.text),
+        manualReportDuration: _manualReportDuration(),
       );
       final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final bytes = zip
@@ -351,6 +359,12 @@ class _ReportScreenState extends State<ReportScreen> {
     if (cleaned.isEmpty) return null;
     return int.tryParse(cleaned);
   }
+
+  Duration _manualReportDuration() {
+    final hours = _optionalInt(_reportHours.text) ?? 0;
+    final minutes = _optionalInt(_reportMinutes.text) ?? 0;
+    return Duration(hours: hours, minutes: minutes);
+  }
 }
 
 class _ManualCounters extends StatelessWidget {
@@ -358,11 +372,15 @@ class _ManualCounters extends StatelessWidget {
     required this.applications,
     required this.followUps,
     required this.interviews,
+    required this.reportHours,
+    required this.reportMinutes,
   });
 
   final TextEditingController applications;
   final TextEditingController followUps;
   final TextEditingController interviews;
+  final TextEditingController reportHours;
+  final TextEditingController reportMinutes;
 
   @override
   Widget build(BuildContext context) {
@@ -398,6 +416,32 @@ class _ManualCounters extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _CounterField(controller: interviews, label: 'Entretiens'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Temps déclaré dans les rapports preuves',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'À remplir quand les PDF JobTime/JobTracker contiennent du temps, car RecruitProof ne lit pas automatiquement le contenu des PDF.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _CounterField(controller: reportHours, label: 'Heures'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CounterField(controller: reportMinutes, label: 'Minutes'),
             ),
           ],
         ),
@@ -452,11 +496,7 @@ class _Summary extends StatelessWidget {
         children: [
           _item(context, '$actions', 'actions'),
           _item(context, '$imported', 'lignes importées'),
-          _item(
-            context,
-            '${duration.inHours}h ${duration.inMinutes.remainder(60)}',
-            'déclarées',
-          ),
+          _item(context, _durationLabel(duration), 'déclarées'),
           _item(context, '${proofs + importedProofs}', 'preuves jointes'),
         ],
       ),
@@ -474,6 +514,14 @@ class _Summary extends StatelessWidget {
       Text(label),
     ],
   );
+
+  String _durationLabel(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    if (hours == 0 && minutes == 0 && seconds > 0) return '${seconds}s';
+    return '${hours}h ${minutes.toString().padLeft(2, '0')}';
+  }
 }
 
 class _SourceImportsCard extends StatelessWidget {

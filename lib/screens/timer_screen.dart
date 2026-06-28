@@ -132,80 +132,143 @@ class TimerScreen extends StatelessWidget {
       }
       return;
     }
-    final notesController = TextEditingController();
-    final titleController = TextEditingController(text: result.type.label);
-    try {
-      if (!context.mounted) return;
-      final save = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Créer le complément'),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: 480,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(labelText: 'Titre'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: notesController,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(labelText: 'Notes'),
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Durée mesurée : ${_clock(result.elapsed)}',
-                      style: Theme.of(dialogContext).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Ignorer'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Enregistrer'),
-            ),
-          ],
+    if (!context.mounted) return;
+    final draft = await Navigator.of(context).push<_TimerDraft>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => _TimerDraftScreen(
+          initialTitle: result.type.label,
+          durationLabel: _clock(result.elapsed),
+        ),
+      ),
+    );
+    if (draft != null && context.mounted) {
+      await context.read<ActivityProvider>().save(
+        Activity(
+          id: const Uuid().v4(),
+          title: draft.title.trim().isEmpty
+              ? result.type.label
+              : draft.title.trim(),
+          type: result.type,
+          date: result.start,
+          startTime: result.start,
+          endTime: result.end,
+          platform: ActivityPlatform.other,
+          notes: draft.notes.trim(),
+          status: ActivityStatus.draft,
         ),
       );
-      if (save == true && context.mounted) {
-        await context.read<ActivityProvider>().save(
-          Activity(
-            id: const Uuid().v4(),
-            title: titleController.text.trim().isEmpty
-                ? result.type.label
-                : titleController.text.trim(),
-            type: result.type,
-            date: result.start,
-            startTime: result.start,
-            endTime: result.end,
-            platform: ActivityPlatform.other,
-            notes: notesController.text.trim(),
-            status: ActivityStatus.draft,
-          ),
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Complément ajouté au dossier.')),
         );
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Complément ajouté au dossier.')),
-          );
-        }
       }
-    } finally {
-      titleController.dispose();
-      notesController.dispose();
     }
+  }
+}
+
+class _TimerDraft {
+  const _TimerDraft({required this.title, required this.notes});
+
+  final String title;
+  final String notes;
+}
+
+class _TimerDraftScreen extends StatefulWidget {
+  const _TimerDraftScreen({
+    required this.initialTitle,
+    required this.durationLabel,
+  });
+
+  final String initialTitle;
+  final String durationLabel;
+
+  @override
+  State<_TimerDraftScreen> createState() => _TimerDraftScreenState();
+}
+
+class _TimerDraftScreenState extends State<_TimerDraftScreen> {
+  late final TextEditingController _title;
+  late final TextEditingController _notes;
+
+  @override
+  void initState() {
+    super.initState();
+    _title = TextEditingController(text: widget.initialTitle);
+    _notes = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Complément chronométré'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(
+              context,
+              _TimerDraft(title: _title.text, notes: _notes.text),
+            ),
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          20,
+          20,
+          20 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        children: [
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.timer_outlined),
+              title: const Text('Durée mesurée'),
+              subtitle: Text(widget.durationLabel),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _title,
+            decoration: const InputDecoration(labelText: 'Titre'),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _notes,
+            minLines: 6,
+            maxLines: 12,
+            keyboardType: TextInputType.multiline,
+            decoration: const InputDecoration(
+              labelText: 'Note pour le dossier',
+              alignLabelWithHint: true,
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(
+              context,
+              _TimerDraft(title: _title.text, notes: _notes.text),
+            ),
+            icon: const Icon(Icons.save_outlined),
+            label: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 14),
+              child: Text('Enregistrer le complément'),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Ignorer'),
+          ),
+        ],
+      ),
+    );
   }
 }

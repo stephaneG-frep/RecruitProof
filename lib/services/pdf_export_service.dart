@@ -23,6 +23,7 @@ class PdfExportService {
     int? manualApplications,
     int? manualFollowUps,
     int? manualInterviews,
+    Duration manualReportDuration = Duration.zero,
   }) async {
     final regularFont = pw.Font.ttf(
       await rootBundle.load('assets/fonts/DejaVuSans.ttf'),
@@ -51,7 +52,8 @@ class PdfExportService {
             0,
             (sum, item) => sum + item.durationMinutes,
           ),
-        );
+        ) +
+        manualReportDuration;
     final platforms = activities
         .map((item) => item.platform.label)
         .followedBy(
@@ -140,7 +142,7 @@ class PdfExportService {
               children: [
                 _metric('Compléments RecruitProof', '${activities.length}'),
                 _metric('Lignes sources', '${importedItems.length}'),
-                _metric('Durée totale', _formatDuration(total)),
+                _metric('Temps total déclaré', _formatDuration(total)),
               ],
             ),
           ),
@@ -162,6 +164,24 @@ class PdfExportService {
               ],
             ),
           ),
+          if (manualReportDuration > Duration.zero) ...[
+            pw.SizedBox(height: 10),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.orange50,
+                border: pw.Border.all(color: PdfColors.orange200),
+                borderRadius: pw.BorderRadius.circular(6),
+              ),
+              child: pw.Text(
+                'Temps déclaré depuis les rapports preuves : ${_formatDuration(manualReportDuration)}',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
           pw.SizedBox(height: 14),
           if (importedFiles.isNotEmpty) ...[
             _sectionTitle('Rapports preuves inclus dans le dossier'),
@@ -269,7 +289,7 @@ class PdfExportService {
             _smallInfo('Date', date.format(item.date)),
             _smallInfo('Type', item.type.label),
             _smallInfo('Plateforme', item.platform.label),
-            _smallInfo('Durée', _formatDuration(item.duration)),
+            _smallInfo('Temps déclaré', _formatDuration(item.duration)),
             _smallInfo('Statut', item.status.label),
           ],
         ),
@@ -319,7 +339,7 @@ class PdfExportService {
                 _smallInfo('Entreprise / plateforme', organization),
               if (item.durationMinutes > 0)
                 _smallInfo(
-                  'Durée',
+                  'Temps déclaré',
                   _formatDuration(Duration(minutes: item.durationMinutes)),
                 ),
               if (item.status.trim().isNotEmpty)
@@ -357,6 +377,8 @@ class PdfExportService {
   String _formatDuration(Duration duration) {
     final hours = duration.inHours;
     final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    if (hours == 0 && minutes == 0 && seconds > 0) return '${seconds}s';
     return '${hours}h ${minutes.toString().padLeft(2, '0')}min';
   }
 }
