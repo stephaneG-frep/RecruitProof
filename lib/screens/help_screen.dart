@@ -38,9 +38,9 @@ class HelpScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'L’application vous aide à garder une trace claire de vos '
-                  'recherches d’emploi et à préparer un dossier compréhensible '
-                  'pour votre conseiller.',
+                  'L’application vous aide à préparer un dossier compréhensible '
+                  'pour votre conseiller. Elle peut aussi consolider des exports '
+                  'manuels venant de JobTime Proof et JobTracker.',
                 ),
               ],
             ),
@@ -114,15 +114,37 @@ class HelpScreen extends StatelessWidget {
           ),
           const _GuideCard(
             icon: Icons.description_outlined,
-            title: 'Rapport : préparer votre dossier',
+            title: 'Rapport : préparer le dossier final',
             color: Colors.orange,
             description:
-                'Saisissez votre nom, choisissez une période, puis exportez '
-                'un PDF récapitulatif ou un ZIP contenant le PDF et les preuves.',
+                'Saisissez votre nom, choisissez une période, importez si besoin '
+                'vos exports JobTime Proof ou JobTracker, puis exportez un PDF '
+                'récapitulatif ou un ZIP contenant le PDF et les preuves.',
             tips: [
+              'JobTime Proof sert au suivi quotidien du temps et des sessions.',
+              'JobTracker sert au suivi des candidatures et statuts.',
+              'RecruitProof sert de classeur final hebdomadaire ou mensuel.',
               'Relisez les activités avant de générer le rapport.',
               'Le ZIP est pratique pour transmettre un dossier complet.',
               'Le fichier est créé localement sur votre appareil.',
+            ],
+          ),
+          const _GuideCard(
+            icon: Icons.upload_file_outlined,
+            title: 'Imports : consolider sans espionner',
+            color: Colors.teal,
+            description:
+                'Dans l’onglet Rapport, utilisez « Sources consolidées » pour '
+                'ajouter plusieurs PDF générés par JobTime Proof ou '
+                'JobTracker. Si vous avez plus tard un export JSON/CSV, il reste '
+                'aussi accepté. RecruitProof ne va jamais chercher ces données tout seul.',
+            tips: [
+              'Les rapports PDF sont des preuves du dossier final.',
+              'Vous pouvez en ajouter plusieurs pour une semaine ou un mois.',
+              'Les PDF sont ajoutés au ZIP final dans le dossier preuves.',
+              'Un nouvel import JSON/CSV remplace les anciennes données structurées de la même source.',
+              'Vous pouvez retirer une source importée sans supprimer le fichier original.',
+              'Les imports restent stockés localement dans RecruitProof.',
             ],
           ),
           const SizedBox(height: 16),

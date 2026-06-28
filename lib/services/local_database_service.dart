@@ -1,21 +1,29 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/activity.dart';
+import '../models/imported_report_file.dart';
+import '../models/imported_report_item.dart';
 import '../models/proof_file.dart';
 
 class LocalDatabaseService {
   static const _activitiesBoxName = 'activities';
   static const _proofsBoxName = 'proofs';
   static const _settingsBoxName = 'settings';
+  static const _importedItemsBoxName = 'imported_report_items';
+  static const _importedFilesBoxName = 'imported_report_files';
 
   late Box<dynamic> _activities;
   late Box<dynamic> _proofs;
   late Box<dynamic> _settings;
+  late Box<dynamic> _importedItems;
+  late Box<dynamic> _importedFiles;
 
   Future<void> initialize() async {
     _activities = await Hive.openBox<dynamic>(_activitiesBoxName);
     _proofs = await Hive.openBox<dynamic>(_proofsBoxName);
     _settings = await Hive.openBox<dynamic>(_settingsBoxName);
+    _importedItems = await Hive.openBox<dynamic>(_importedItemsBoxName);
+    _importedFiles = await Hive.openBox<dynamic>(_importedFilesBoxName);
     await _seedDemoData();
   }
 
@@ -45,6 +53,81 @@ class LocalDatabaseService {
 
   Future<void> setLastReportDate(DateTime date) =>
       _settings.put('lastReportDate', date.toIso8601String());
+
+  List<ImportedReportItem> getImportedItems() => _importedItems.values
+      .map(
+        (value) => ImportedReportItem.fromMap(
+          Map<dynamic, dynamic>.from(value as Map),
+        ),
+      )
+      .toList();
+
+  Future<int> replaceImportedItems({
+    required ImportedSourceType source,
+    required List<ImportedReportItem> items,
+  }) async {
+    final existingKeys = _importedItems.keys.where((key) {
+      final value = _importedItems.get(key);
+      if (value is! Map) return false;
+      return value['source'] == source.name;
+    }).toList();
+    await _importedItems.deleteAll(existingKeys);
+    for (final item in items) {
+      await _importedItems.put(item.id, item.toMap());
+    }
+    return existingKeys.length;
+  }
+
+  Future<void> addImportedItems(List<ImportedReportItem> items) async {
+    for (final item in items) {
+      await _importedItems.put(item.id, item.toMap());
+    }
+  }
+
+  List<ImportedReportFile> getImportedFiles() => _importedFiles.values
+      .map(
+        (value) => ImportedReportFile.fromMap(
+          Map<dynamic, dynamic>.from(value as Map),
+        ),
+      )
+      .toList();
+
+  Future<int> replaceImportedFiles({
+    required ImportedSourceType source,
+    required List<ImportedReportFile> files,
+  }) async {
+    final existingKeys = _importedFiles.keys.where((key) {
+      final value = _importedFiles.get(key);
+      if (value is! Map) return false;
+      return value['source'] == source.name;
+    }).toList();
+    await _importedFiles.deleteAll(existingKeys);
+    for (final file in files) {
+      await _importedFiles.put(file.id, file.toMap());
+    }
+    return existingKeys.length;
+  }
+
+  Future<void> addImportedFiles(List<ImportedReportFile> files) async {
+    for (final file in files) {
+      await _importedFiles.put(file.id, file.toMap());
+    }
+  }
+
+  Future<void> clearImportedSource(ImportedSourceType source) async {
+    final itemKeys = _importedItems.keys.where((key) {
+      final value = _importedItems.get(key);
+      if (value is! Map) return false;
+      return value['source'] == source.name;
+    }).toList();
+    final fileKeys = _importedFiles.keys.where((key) {
+      final value = _importedFiles.get(key);
+      if (value is! Map) return false;
+      return value['source'] == source.name;
+    }).toList();
+    await _importedItems.deleteAll(itemKeys);
+    await _importedFiles.deleteAll(fileKeys);
+  }
 
   Future<void> _seedDemoData() async {
     if (_activities.isNotEmpty || _settings.get('demoSeeded') == true) return;

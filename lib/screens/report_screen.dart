@@ -3,8 +3,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/activity.dart';
+import '../models/imported_report_item.dart';
 import '../models/proof_file.dart';
 import '../providers/activity_provider.dart';
+import '../providers/imported_data_provider.dart';
 import '../providers/proof_provider.dart';
 import '../services/file_picker_service.dart';
 import '../services/pdf_export_service.dart';
@@ -19,6 +21,10 @@ class ReportScreen extends StatefulWidget {
 
 class _ReportScreenState extends State<ReportScreen> {
   final _name = TextEditingController();
+  final _contextLabel = TextEditingController();
+  final _applicationsCount = TextEditingController();
+  final _followUpsCount = TextEditingController();
+  final _interviewsCount = TextEditingController();
   late DateTime _start;
   late DateTime _end;
   bool _generating = false;
@@ -34,6 +40,10 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   void dispose() {
     _name.dispose();
+    _contextLabel.dispose();
+    _applicationsCount.dispose();
+    _followUpsCount.dispose();
+    _interviewsCount.dispose();
     super.dispose();
   }
 
@@ -41,6 +51,9 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget build(BuildContext context) {
     final all = context.watch<ActivityProvider>().activities;
     final selected = _selectedActivities(all);
+    final importedProvider = context.watch<ImportedDataProvider>();
+    final imported = importedProvider.forPeriod(_start, _end);
+    final importedFiles = importedProvider.files;
     final proofs = _selectedProofs(
       selected,
       context.watch<ProofProvider>().proofs,
@@ -54,7 +67,9 @@ class _ReportScreenState extends State<ReportScreen> {
             context,
           ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
-        const Text('Préparez un dossier PDF ou une archive complète ZIP.'),
+        const Text(
+          'Préparez un dossier PDF ou une archive ZIP solide avec vos activités et plusieurs rapports preuves.',
+        ),
         const SizedBox(height: 20),
         Center(
           child: ConstrainedBox(
@@ -73,6 +88,16 @@ class _ReportScreenState extends State<ReportScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
+                    TextField(
+                      controller: _contextLabel,
+                      decoration: const InputDecoration(
+                        labelText: 'Entreprise / contexte du rapport',
+                        hintText:
+                            'Ex. recherches France Travail, secteur visé…',
+                        prefixIcon: Icon(Icons.business_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     OutlinedButton.icon(
                       onPressed: _pickRange,
                       icon: const Icon(Icons.date_range),
@@ -80,14 +105,51 @@ class _ReportScreenState extends State<ReportScreen> {
                         '${DateFormat('dd/MM/yyyy').format(_start)} – ${DateFormat('dd/MM/yyyy').format(_end)}',
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    _ManualCounters(
+                      applications: _applicationsCount,
+                      followUps: _followUpsCount,
+                      interviews: _interviewsCount,
+                    ),
                     const SizedBox(height: 20),
                     _Summary(
                       actions: selected.length,
+                      imported: imported.length,
                       proofs: proofs.length,
-                      duration: selected.fold(
-                        Duration.zero,
-                        (sum, item) => sum + item.duration,
+                      importedProofs:
+                          imported.fold(
+                            0,
+                            (sum, item) => sum + item.proofCount,
+                          ) +
+                          importedFiles.length,
+                      duration:
+                          selected.fold(
+                            Duration.zero,
+                            (sum, item) => sum + item.duration,
+                          ) +
+                          Duration(
+                            minutes: imported.fold(
+                              0,
+                              (sum, item) => sum + item.durationMinutes,
+                            ),
+                          ),
+                    ),
+                    const SizedBox(height: 18),
+                    _SourceImportsCard(
+                      jobTimeCount: importedProvider.countForSource(
+                        ImportedSourceType.jobTimeProof,
                       ),
+                      jobTimeFileCount: importedProvider.fileCountForSource(
+                        ImportedSourceType.jobTimeProof,
+                      ),
+                      jobTrackerCount: importedProvider.countForSource(
+                        ImportedSourceType.jobTracker,
+                      ),
+                      jobTrackerFileCount: importedProvider.fileCountForSource(
+                        ImportedSourceType.jobTracker,
+                      ),
+                      onImport: _importSource,
+                      onClear: _clearSource,
                     ),
                     const SizedBox(height: 22),
                     FilledButton.icon(
@@ -123,7 +185,7 @@ class _ReportScreenState extends State<ReportScreen> {
             leading: Icon(Icons.lock_outline),
             title: Text('Traitement entièrement local'),
             subtitle: Text(
-              'Le rapport et l’archive sont générés sur cet appareil. Aucun fichier n’est envoyé à un serveur.',
+              'Les imports sont manuels. Le rapport et l’archive sont générés sur cet appareil. Aucun fichier n’est envoyé à un serveur.',
             ),
           ),
         ),
@@ -186,16 +248,31 @@ class _ReportScreenState extends State<ReportScreen> {
         activities,
         context.read<ProofProvider>().proofs,
       );
+      final importedItems = context.read<ImportedDataProvider>().forPeriod(
+        _start,
+        _end,
+      );
+      final importedFiles = context.read<ImportedDataProvider>().files;
       final pdf = await PdfExportService().generate(
         personName: _name.text.trim(),
         start: _start,
         end: _end,
         activities: activities,
+        importedItems: importedItems,
+        importedFiles: importedFiles,
         proofs: proofs,
+        contextLabel: _contextLabel.text.trim(),
+        manualApplications: _optionalInt(_applicationsCount.text),
+        manualFollowUps: _optionalInt(_followUpsCount.text),
+        manualInterviews: _optionalInt(_interviewsCount.text),
       );
       final date = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final bytes = zip
-          ? ZipExportService().generate(report: pdf, proofs: proofs)
+          ? ZipExportService().generate(
+              report: pdf,
+              proofs: proofs,
+              importedFiles: importedFiles,
+            )
           : pdf;
       final fileName = zip
           ? 'RecruitProof_rapport_$date.zip'
@@ -219,17 +296,143 @@ class _ReportScreenState extends State<ReportScreen> {
       if (mounted) setState(() => _generating = false);
     }
   }
+
+  Future<void> _importSource(ImportedSourceType source) async {
+    try {
+      final summary = await context.read<ImportedDataProvider>().importFromFile(
+        source,
+      );
+      if (!mounted || summary == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            summary.files > 0
+                ? '${summary.files} rapport(s) preuve(s) ajouté(s) depuis ${summary.source.label}.'
+                : '${summary.imported} lignes importées depuis ${summary.source.label}.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import impossible : $error')));
+    }
+  }
+
+  Future<void> _clearSource(ImportedSourceType source) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Supprimer les imports ${source.label} ?'),
+        content: const Text(
+          'Cela retire seulement les données importées dans RecruitProof. Le fichier source et les autres applications ne sont pas modifiés.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    await context.read<ImportedDataProvider>().clearSource(source);
+  }
+
+  int? _optionalInt(String value) {
+    final cleaned = value.trim();
+    if (cleaned.isEmpty) return null;
+    return int.tryParse(cleaned);
+  }
+}
+
+class _ManualCounters extends StatelessWidget {
+  const _ManualCounters({
+    required this.applications,
+    required this.followUps,
+    required this.interviews,
+  });
+
+  final TextEditingController applications;
+  final TextEditingController followUps;
+  final TextEditingController interviews;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Compteurs manuels du rapport',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Laissez vide pour calcul automatique. Remplissez si les chiffres viennent de rapports preuves PDF.',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _CounterField(
+                controller: applications,
+                label: 'Candidatures',
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CounterField(controller: followUps, label: 'Relances'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _CounterField(controller: interviews, label: 'Entretiens'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CounterField extends StatelessWidget {
+  const _CounterField({required this.controller, required this.label});
+
+  final TextEditingController controller;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      decoration: InputDecoration(labelText: label),
+    );
+  }
 }
 
 class _Summary extends StatelessWidget {
   const _Summary({
     required this.actions,
+    required this.imported,
     required this.proofs,
+    required this.importedProofs,
     required this.duration,
   });
 
   final int actions;
+  final int imported;
   final int proofs;
+  final int importedProofs;
   final Duration duration;
 
   @override
@@ -246,12 +449,13 @@ class _Summary extends StatelessWidget {
         runSpacing: 12,
         children: [
           _item(context, '$actions', 'actions'),
+          _item(context, '$imported', 'lignes importées'),
           _item(
             context,
             '${duration.inHours}h ${duration.inMinutes.remainder(60)}',
             'déclarées',
           ),
-          _item(context, '$proofs', 'preuves jointes'),
+          _item(context, '${proofs + importedProofs}', 'preuves jointes'),
         ],
       ),
     );
@@ -268,4 +472,146 @@ class _Summary extends StatelessWidget {
       Text(label),
     ],
   );
+}
+
+class _SourceImportsCard extends StatelessWidget {
+  const _SourceImportsCard({
+    required this.jobTimeCount,
+    required this.jobTimeFileCount,
+    required this.jobTrackerCount,
+    required this.jobTrackerFileCount,
+    required this.onImport,
+    required this.onClear,
+  });
+
+  final int jobTimeCount;
+  final int jobTimeFileCount;
+  final int jobTrackerCount;
+  final int jobTrackerFileCount;
+  final ValueChanged<ImportedSourceType> onImport;
+  final ValueChanged<ImportedSourceType> onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sources consolidées',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Importez manuellement les exports de vos autres applis. RecruitProof sert alors de classeur final pour la semaine ou le mois.',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _SourceTile(
+              icon: Icons.timer_outlined,
+              title: 'JobTime Proof',
+              subtitle:
+                  '$jobTimeCount ligne(s), $jobTimeFileCount rapport(s) preuve(s)',
+              importLabel: 'Ajouter PDF/JSON',
+              onImport: () => onImport(ImportedSourceType.jobTimeProof),
+              onClear: jobTimeCount == 0 && jobTimeFileCount == 0
+                  ? null
+                  : () => onClear(ImportedSourceType.jobTimeProof),
+            ),
+            const SizedBox(height: 12),
+            _SourceTile(
+              icon: Icons.work_outline,
+              title: 'JobTracker',
+              subtitle:
+                  '$jobTrackerCount ligne(s), $jobTrackerFileCount rapport(s) preuve(s)',
+              importLabel: 'Ajouter PDF/CSV',
+              onImport: () => onImport(ImportedSourceType.jobTracker),
+              onClear: jobTrackerCount == 0 && jobTrackerFileCount == 0
+                  ? null
+                  : () => onClear(ImportedSourceType.jobTracker),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SourceTile extends StatelessWidget {
+  const _SourceTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.importLabel,
+    required this.onImport,
+    required this.onClear,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String importLabel;
+  final VoidCallback onImport;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: scheme.primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(color: scheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: onImport,
+            icon: const Icon(Icons.upload_file_outlined),
+            label: Text(importLabel),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Retirer cette source'),
+          ),
+        ],
+      ),
+    );
+  }
 }

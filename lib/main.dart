@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'app.dart';
 import 'providers/activity_provider.dart';
+import 'providers/imported_data_provider.dart';
 import 'providers/proof_provider.dart';
 import 'providers/timer_provider.dart';
 import 'services/local_database_service.dart';
@@ -22,6 +23,9 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(
           create: (_) => ActivityProvider(database)..load(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ImportedDataProvider(database)..load(),
         ),
         ChangeNotifierProvider(create: (_) => ProofProvider(database)..load()),
         ChangeNotifierProvider(create: (_) => TimerProvider()),
