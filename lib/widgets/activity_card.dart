@@ -59,7 +59,7 @@ class ActivityCard extends StatelessWidget {
                   ),
                   Chip(
                     avatar: const Icon(Icons.schedule, size: 17),
-                    label: Text(_duration(activity.duration)),
+                    label: Text('Temps ${_duration(activity.duration)}'),
                     visualDensity: VisualDensity.compact,
                   ),
                 ],
@@ -97,8 +97,13 @@ class ActivityCard extends StatelessWidget {
     );
   }
 
-  String _duration(Duration value) =>
-      '${value.inHours}h ${value.inMinutes.remainder(60).toString().padLeft(2, '0')}';
+  String _duration(Duration value) {
+    final hours = value.inHours;
+    final minutes = value.inMinutes.remainder(60);
+    final seconds = value.inSeconds.remainder(60);
+    if (hours == 0 && minutes == 0 && seconds > 0) return '${seconds}s';
+    return '${hours}h ${minutes.toString().padLeft(2, '0')}';
+  }
 }
 
 class _StatusBadge extends StatelessWidget {

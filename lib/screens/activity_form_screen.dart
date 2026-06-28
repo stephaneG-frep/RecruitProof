@@ -20,6 +20,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
   late final TextEditingController _title;
   late final TextEditingController _reference;
   late final TextEditingController _notes;
+  late final TextEditingController _durationMinutes;
   late ActionType _type;
   late ActivityPlatform _platform;
   late ActivityStatus _status;
@@ -37,6 +38,12 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
     _title = TextEditingController(text: item?.title);
     _reference = TextEditingController(text: item?.reference);
     _notes = TextEditingController(text: item?.notes);
+    _durationMinutes = TextEditingController(
+      text: item == null || item.duration.inMinutes == 0
+          ? ''
+          : item.duration.inMinutes.toString(),
+    );
+    _durationMinutes.addListener(() => setState(() {}));
     _type = item?.type ?? ActionType.other;
     _platform = item?.platform ?? ActivityPlatform.other;
     _status = item?.status ?? ActivityStatus.draft;
@@ -55,6 +62,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
     _title.dispose();
     _reference.dispose();
     _notes.dispose();
+    _durationMinutes.dispose();
     super.dispose();
   }
 
@@ -174,6 +182,25 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
               ),
             ),
             const SizedBox(height: 8),
+            TextFormField(
+              controller: _durationMinutes,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Temps déclaré en minutes',
+                hintText: 'Ex. 20 pour une mise à jour CV',
+                prefixIcon: Icon(Icons.schedule_outlined),
+              ),
+              validator: (value) {
+                final cleaned = value?.trim() ?? '';
+                if (cleaned.isEmpty) return null;
+                final minutes = int.tryParse(cleaned);
+                if (minutes == null || minutes < 1) {
+                  return 'Saisissez un nombre de minutes positif.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
               child: Text('Durée déclarée : ${_durationLabel()}'),
@@ -275,9 +302,20 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
       DateTime(_date.year, _date.month, _date.day, time.hour, time.minute);
 
   String _durationLabel() {
+    final explicitMinutes = _explicitDurationMinutes();
+    if (explicitMinutes != null) {
+      final value = Duration(minutes: explicitMinutes);
+      return '${value.inHours}h ${value.inMinutes.remainder(60).toString().padLeft(2, '0')}';
+    }
     final value = _at(_end).difference(_at(_start));
     if (value.isNegative) return 'heure de fin invalide';
     return '${value.inHours}h ${value.inMinutes.remainder(60).toString().padLeft(2, '0')}';
+  }
+
+  int? _explicitDurationMinutes() {
+    final cleaned = _durationMinutes.text.trim();
+    if (cleaned.isEmpty) return null;
+    return int.tryParse(cleaned);
   }
 
   Future<void> _pickDate() async {
@@ -312,7 +350,10 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final start = _at(_start);
-    final end = _at(_end);
+    final explicitMinutes = _explicitDurationMinutes();
+    final end = explicitMinutes == null
+        ? _at(_end)
+        : start.add(Duration(minutes: explicitMinutes));
     if (!end.isAfter(start)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

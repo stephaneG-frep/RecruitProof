@@ -289,20 +289,23 @@ class PdfExportService {
             _smallInfo('Date', date.format(item.date)),
             _smallInfo('Type', item.type.label),
             _smallInfo('Plateforme', item.platform.label),
-            _smallInfo('Temps déclaré', _formatDuration(item.duration)),
+            _smallInfo('Temps déclaré', _formatDeclaredDuration(item.duration)),
             _smallInfo('Statut', item.status.label),
           ],
         ),
         if (item.reference.trim().isNotEmpty) ...[
           pw.SizedBox(height: 4),
           pw.Text(
-            'Référence : ${item.reference}',
+            'Référence / entreprise : ${item.reference}',
             style: const pw.TextStyle(fontSize: 9),
           ),
         ],
         if (item.notes.trim().isNotEmpty) ...[
           pw.SizedBox(height: 4),
-          pw.Text(item.notes, style: const pw.TextStyle(fontSize: 9)),
+          pw.Text(
+            'Note : ${item.notes}',
+            style: const pw.TextStyle(fontSize: 9),
+          ),
         ],
       ],
     ),
@@ -355,7 +358,10 @@ class PdfExportService {
           ],
           if (item.notes.trim().isNotEmpty) ...[
             pw.SizedBox(height: 4),
-            pw.Text(item.notes, style: const pw.TextStyle(fontSize: 9)),
+            pw.Text(
+              'Note : ${item.notes}',
+              style: const pw.TextStyle(fontSize: 9),
+            ),
           ],
         ],
       ),
@@ -380,5 +386,10 @@ class PdfExportService {
     final seconds = duration.inSeconds.remainder(60);
     if (hours == 0 && minutes == 0 && seconds > 0) return '${seconds}s';
     return '${hours}h ${minutes.toString().padLeft(2, '0')}min';
+  }
+
+  String _formatDeclaredDuration(Duration duration) {
+    if (duration == Duration.zero) return 'Non déclaré';
+    return _formatDuration(duration);
   }
 }
