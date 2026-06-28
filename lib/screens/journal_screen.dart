@@ -18,17 +18,31 @@ class JournalScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'journal_add_activity',
         onPressed: () => _openForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Nouvelle activité'),
+        icon: const Icon(Icons.note_add_outlined),
+        label: const Text('Nouveau complément'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         children: [
           Text(
-            'Journal d’activités',
+            'Compléments au dossier',
             style: Theme.of(
               context,
             ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Ajoutez ici ce qui manque aux rapports importés : précision, note, action ponctuelle ou preuve isolée.',
+          ),
+          const SizedBox(height: 14),
+          const Card(
+            child: ListTile(
+              leading: Icon(Icons.info_outline),
+              title: Text('Cette rubrique complète le dossier final'),
+              subtitle: Text(
+                'JobTime Proof et JobTracker restent les sources principales. RecruitProof sert à ajouter les éléments oubliés ou utiles au conseiller.',
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           TextField(
@@ -39,7 +53,7 @@ class JournalScreen extends StatelessWidget {
               ),
             decoration: const InputDecoration(
               prefixIcon: Icon(Icons.search),
-              hintText: 'Rechercher par titre, plateforme ou notes',
+              hintText: 'Rechercher par titre, contexte ou notes',
             ),
           ),
           const SizedBox(height: 12),
@@ -49,7 +63,7 @@ class JournalScreen extends StatelessWidget {
             children: [
               DropdownMenu<ActionType?>(
                 width: 210,
-                label: const Text('Type d’action'),
+                label: const Text('Type de complément'),
                 initialSelection: provider.typeFilter,
                 dropdownMenuEntries: [
                   const DropdownMenuEntry(value: null, label: 'Tous les types'),
@@ -110,13 +124,13 @@ class JournalScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text('${activities.length} activité(s)'),
+          Text('${activities.length} complément(s)'),
           const SizedBox(height: 8),
           if (activities.isEmpty)
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(32),
-                child: Center(child: Text('Aucun résultat.')),
+                child: Center(child: Text('Aucun complément trouvé.')),
               ),
             )
           else
@@ -163,7 +177,7 @@ class JournalScreen extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer cette activité ?'),
+        title: const Text('Supprimer ce complément ?'),
         content: Text('« ${activity.title} » sera définitivement supprimée.'),
         actions: [
           TextButton(

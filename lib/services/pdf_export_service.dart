@@ -138,7 +138,7 @@ class PdfExportService {
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
               children: [
-                _metric('Actions RecruitProof', '${activities.length}'),
+                _metric('Compléments RecruitProof', '${activities.length}'),
                 _metric('Lignes sources', '${importedItems.length}'),
                 _metric('Durée totale', _formatDuration(total)),
               ],
@@ -163,14 +163,43 @@ class PdfExportService {
             ),
           ),
           pw.SizedBox(height: 14),
+          if (importedFiles.isNotEmpty) ...[
+            _sectionTitle('Rapports preuves inclus dans le dossier'),
+            pw.SizedBox(height: 8),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.green50,
+                border: pw.Border.all(color: PdfColors.green200),
+                borderRadius: pw.BorderRadius.circular(6),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Ces rapports sont des preuves jointes. Le ZIP complet contient les fichiers PDF originaux.',
+                    style: const pw.TextStyle(fontSize: 9),
+                  ),
+                  pw.SizedBox(height: 6),
+                  ...importedFiles.map(
+                    (file) => pw.Bullet(
+                      text:
+                          '${file.source.label} — ${file.name} (${file.sizeLabel})',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 14),
+          ],
           pw.Text(
             'Plateformes utilisées : ${platforms.isEmpty ? '—' : platforms}',
           ),
           pw.SizedBox(height: 18),
-          _sectionTitle('Activités RecruitProof'),
+          _sectionTitle('Compléments RecruitProof'),
           pw.SizedBox(height: 8),
           if (activities.isEmpty)
-            pw.Text('Aucune activité RecruitProof sur cette période.')
+            pw.Text('Aucun complément RecruitProof sur cette période.')
           else
             ...activities.map((item) => _activityBlock(item, date)),
           if (importedItems.isNotEmpty) ...[
@@ -179,16 +208,7 @@ class PdfExportService {
             pw.SizedBox(height: 8),
             ...importedItems.map((item) => _importedBlock(item, date)),
           ],
-          if (importedFiles.isNotEmpty) ...[
-            pw.SizedBox(height: 18),
-            _sectionTitle('Rapports preuves joints'),
-            pw.SizedBox(height: 8),
-            ...importedFiles.map(
-              (file) => pw.Bullet(
-                text: '${file.source.label} — ${file.name} (${file.sizeLabel})',
-              ),
-            ),
-          ],
+          if (importedFiles.isNotEmpty) pw.SizedBox(height: 18),
           pw.SizedBox(height: 18),
           _sectionTitle('Autres preuves RecruitProof jointes'),
           if (proofs.isEmpty)

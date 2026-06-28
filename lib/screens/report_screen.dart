@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/activity.dart';
+import '../models/imported_report_file.dart';
 import '../models/imported_report_item.dart';
 import '../models/proof_file.dart';
 import '../providers/activity_provider.dart';
@@ -68,7 +69,7 @@ class _ReportScreenState extends State<ReportScreen> {
           ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const Text(
-          'Préparez un dossier PDF ou une archive ZIP solide avec vos activités et plusieurs rapports preuves.',
+          'Préparez un dossier PDF ou une archive ZIP solide avec vos compléments et plusieurs rapports preuves.',
         ),
         const SizedBox(height: 20),
         Center(
@@ -148,6 +149,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       jobTrackerFileCount: importedProvider.fileCountForSource(
                         ImportedSourceType.jobTracker,
                       ),
+                      reportFiles: importedFiles,
                       onImport: _importSource,
                       onClear: _clearSource,
                     ),
@@ -480,6 +482,7 @@ class _SourceImportsCard extends StatelessWidget {
     required this.jobTimeFileCount,
     required this.jobTrackerCount,
     required this.jobTrackerFileCount,
+    required this.reportFiles,
     required this.onImport,
     required this.onClear,
   });
@@ -488,6 +491,7 @@ class _SourceImportsCard extends StatelessWidget {
   final int jobTimeFileCount;
   final int jobTrackerCount;
   final int jobTrackerFileCount;
+  final List<ImportedReportFile> reportFiles;
   final ValueChanged<ImportedSourceType> onImport;
   final ValueChanged<ImportedSourceType> onClear;
 
@@ -519,6 +523,11 @@ class _SourceImportsCard extends StatelessWidget {
               subtitle:
                   '$jobTimeCount ligne(s), $jobTimeFileCount rapport(s) preuve(s)',
               importLabel: 'Ajouter PDF/JSON',
+              files: reportFiles
+                  .where(
+                    (file) => file.source == ImportedSourceType.jobTimeProof,
+                  )
+                  .toList(),
               onImport: () => onImport(ImportedSourceType.jobTimeProof),
               onClear: jobTimeCount == 0 && jobTimeFileCount == 0
                   ? null
@@ -531,6 +540,9 @@ class _SourceImportsCard extends StatelessWidget {
               subtitle:
                   '$jobTrackerCount ligne(s), $jobTrackerFileCount rapport(s) preuve(s)',
               importLabel: 'Ajouter PDF/CSV',
+              files: reportFiles
+                  .where((file) => file.source == ImportedSourceType.jobTracker)
+                  .toList(),
               onImport: () => onImport(ImportedSourceType.jobTracker),
               onClear: jobTrackerCount == 0 && jobTrackerFileCount == 0
                   ? null
@@ -549,6 +561,7 @@ class _SourceTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.importLabel,
+    required this.files,
     required this.onImport,
     required this.onClear,
   });
@@ -557,6 +570,7 @@ class _SourceTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final String importLabel;
+  final List<ImportedReportFile> files;
   final VoidCallback onImport;
   final VoidCallback? onClear;
 
@@ -598,6 +612,44 @@ class _SourceTile extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          if (files.isEmpty)
+            Text(
+              'Aucun rapport preuve ajouté pour cette source.',
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            )
+          else ...[
+            Text(
+              'Rapports preuves ajoutés',
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            ...files.map(
+              (file) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.picture_as_pdf_outlined,
+                      size: 18,
+                      color: scheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${file.name} • ${file.sizeLabel}',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: onImport,

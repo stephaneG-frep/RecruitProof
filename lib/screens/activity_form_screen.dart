@@ -37,8 +37,8 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
     _title = TextEditingController(text: item?.title);
     _reference = TextEditingController(text: item?.reference);
     _notes = TextEditingController(text: item?.notes);
-    _type = item?.type ?? ActionType.application;
-    _platform = item?.platform ?? ActivityPlatform.franceTravail;
+    _type = item?.type ?? ActionType.other;
+    _platform = item?.platform ?? ActivityPlatform.other;
     _status = item?.status ?? ActivityStatus.draft;
     _date = item?.date ?? DateTime.now();
     _start = item == null
@@ -68,7 +68,9 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.activity == null ? 'Nouvelle activité' : 'Modifier l’activité',
+          widget.activity == null
+              ? 'Nouveau complément'
+              : 'Modifier le complément',
         ),
       ),
       body: Form(
@@ -76,11 +78,31 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: const Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.edit_note_outlined),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Un complément sert à préciser votre dossier : action oubliée, note au conseiller, preuve isolée, rendez-vous ou élément non présent dans les rapports importés.',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
             TextFormField(
               controller: _title,
               autofocus: widget.activity == null,
               decoration: const InputDecoration(
-                labelText: 'Titre *',
+                labelText: 'Titre du complément *',
+                hintText: 'Ex. Précision sur une candidature, document ajouté…',
                 prefixIcon: Icon(Icons.title),
               ),
               validator: (value) => value == null || value.trim().isEmpty
@@ -91,7 +113,9 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
             _twoColumns(
               DropdownButtonFormField<ActionType>(
                 initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Type d’action'),
+                decoration: const InputDecoration(
+                  labelText: 'Type de complément',
+                ),
                 items: ActionType.values
                     .map(
                       (value) => DropdownMenuItem(
@@ -104,7 +128,9 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
               ),
               DropdownButtonFormField<ActivityPlatform>(
                 initialValue: _platform,
-                decoration: const InputDecoration(labelText: 'Plateforme'),
+                decoration: const InputDecoration(
+                  labelText: 'Contexte / plateforme',
+                ),
                 items: ActivityPlatform.values
                     .map(
                       (value) => DropdownMenuItem(
@@ -120,7 +146,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
             _twoColumns(
               _PickerTile(
                 icon: Icons.calendar_today,
-                label: 'Date',
+                label: 'Date du complément',
                 value:
                     '${_date.day.toString().padLeft(2, '0')}/${_date.month.toString().padLeft(2, '0')}/${_date.year}',
                 onTap: _pickDate,
@@ -150,13 +176,13 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerRight,
-              child: Text('Durée calculée : ${_durationLabel()}'),
+              child: Text('Durée déclarée : ${_durationLabel()}'),
             ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _reference,
               decoration: const InputDecoration(
-                labelText: 'URL ou référence',
+                labelText: 'URL, entreprise ou référence',
                 prefixIcon: Icon(Icons.link),
               ),
             ),
@@ -166,7 +192,9 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
               minLines: 3,
               maxLines: 6,
               decoration: const InputDecoration(
-                labelText: 'Notes personnelles',
+                labelText: 'Note pour le dossier',
+                hintText:
+                    'Expliquez brièvement pourquoi ce complément est utile.',
                 alignLabelWithHint: true,
                 prefixIcon: Icon(Icons.notes),
               ),
@@ -217,7 +245,7 @@ class _ActivityFormScreenState extends State<ActivityFormScreen> {
               icon: const Icon(Icons.save_outlined),
               label: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('Enregistrer l’activité'),
+                child: Text('Enregistrer le complément'),
               ),
             ),
           ],

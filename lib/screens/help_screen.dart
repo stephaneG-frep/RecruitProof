@@ -65,25 +65,25 @@ class HelpScreen extends StatelessWidget {
             title: 'Dashboard : voir l’essentiel',
             color: Colors.blue,
             description:
-                'Consultez le nombre d’actions, le temps déclaré, les preuves '
-                'ajoutées et votre dernière génération de rapport.',
+                'Consultez l’état du dossier de preuves : rapports ajoutés, '
+                'sources importées, temps déclaré et dernier dossier généré.',
             tips: [
-              'Utilisez-le pour vérifier rapidement votre régularité.',
+              'Utilisez-le pour vérifier si le dossier du mois est solide.',
               'Touchez « Statistiques » pour obtenir une vue plus détaillée.',
             ],
           ),
           const _GuideCard(
-            icon: Icons.menu_book_outlined,
-            title: 'Journal : enregistrer une démarche',
+            icon: Icons.note_add_outlined,
+            title: 'Compléments : ajouter ce qui manque',
             color: Colors.indigo,
             description:
-                'Appuyez sur « Nouvelle activité », donnez un titre clair, '
-                'choisissez le type d’action, la plateforme, les horaires et '
-                'le statut, puis enregistrez.',
+                'Appuyez sur « Nouveau complément » pour ajouter une précision, '
+                'une action oubliée, une note pour le conseiller ou une preuve '
+                'isolée non présente dans les rapports importés.',
             tips: [
-              'Exemple de titre : « Candidature – Assistant administratif ».',
+              'Exemple : « Précision sur la relance de telle entreprise ».',
               'Utilisez « À vérifier » si une information doit être complétée.',
-              'La durée est calculée automatiquement.',
+              'La durée déclarée reste optionnelle mais peut aider le rapport.',
             ],
           ),
           const _GuideCard(
@@ -92,9 +92,9 @@ class HelpScreen extends StatelessWidget {
             color: Colors.green,
             description:
                 'Ajoutez manuellement une capture d’écran, une photo, un PDF '
-                'ou un document. Une activité peut contenir plusieurs preuves.',
+                'ou un document. Un complément peut contenir plusieurs preuves.',
             tips: [
-              'Ajoutez une preuve depuis le formulaire d’activité pour la lier.',
+              'Ajoutez une preuve depuis le formulaire de complément pour la lier.',
               'Vérifiez que les informations sensibles peuvent être partagées.',
               'Une suppression demande toujours votre confirmation.',
             ],
@@ -104,9 +104,9 @@ class HelpScreen extends StatelessWidget {
             title: 'Chrono : mesurer une session',
             color: Colors.deepPurple,
             description:
-                'Choisissez une action, démarrez le chrono, mettez-le en pause '
+                'Choisissez un type, démarrez le chrono, mettez-le en pause '
                 'si nécessaire, puis arrêtez-le. RecruitProof propose alors de '
-                'créer automatiquement une activité.',
+                'créer automatiquement un complément.',
             tips: [
               'Le chrono ne surveille aucune autre application.',
               'Ajoutez une note à la fin pour vous souvenir du travail réalisé.',
@@ -124,7 +124,7 @@ class HelpScreen extends StatelessWidget {
               'JobTime Proof sert au suivi quotidien du temps et des sessions.',
               'JobTracker sert au suivi des candidatures et statuts.',
               'RecruitProof sert de classeur final hebdomadaire ou mensuel.',
-              'Relisez les activités avant de générer le rapport.',
+              'Relisez les compléments avant de générer le rapport.',
               'Le ZIP est pratique pour transmettre un dossier complet.',
               'Le fichier est créé localement sur votre appareil.',
             ],

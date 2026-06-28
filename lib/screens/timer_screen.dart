@@ -21,7 +21,9 @@ class TimerScreen extends StatelessWidget {
             context,
           ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
-        const Text('Mesurez une session, puis transformez-la en activité.'),
+        const Text(
+          'Mesurez une session ponctuelle, puis ajoutez-la comme complément au dossier.',
+        ),
         const SizedBox(height: 28),
         Center(
           child: ConstrainedBox(
@@ -34,7 +36,7 @@ class TimerScreen extends StatelessWidget {
                     DropdownButtonFormField<ActionType>(
                       initialValue: timer.type,
                       decoration: const InputDecoration(
-                        labelText: 'Type d’action',
+                        labelText: 'Type de complément',
                       ),
                       items: ActionType.values
                           .map(
@@ -105,7 +107,7 @@ class TimerScreen extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: Icon(Icons.privacy_tip_outlined),
-            title: Text('Votre activité reste privée'),
+            title: Text('Votre complément reste privé'),
             subtitle: Text(
               'Le chronomètre ne surveille aucune application. Il compte uniquement le temps après votre action explicite.',
             ),
@@ -128,7 +130,7 @@ class TimerScreen extends StatelessWidget {
     final save = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Créer l’activité'),
+        title: const Text('Créer le complément'),
         content: SizedBox(
           width: 480,
           child: Column(
@@ -178,7 +180,7 @@ class TimerScreen extends StatelessWidget {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Activité créée dans le journal.')),
+          const SnackBar(content: Text('Complément ajouté au dossier.')),
         );
       }
     }

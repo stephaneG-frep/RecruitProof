@@ -95,9 +95,9 @@ class _AppShellState extends State<AppShell> {
       label: 'Dashboard',
     ),
     NavigationDestination(
-      icon: Icon(Icons.menu_book_outlined),
-      selectedIcon: Icon(Icons.menu_book),
-      label: 'Journal',
+      icon: Icon(Icons.note_add_outlined),
+      selectedIcon: Icon(Icons.note_add),
+      label: 'Compléments',
     ),
     NavigationDestination(
       icon: Icon(Icons.timer_outlined),
