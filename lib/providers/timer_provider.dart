@@ -45,11 +45,14 @@ class TimerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  ({DateTime start, DateTime end, Duration elapsed, ActionType type}) stop() {
+  ({DateTime start, DateTime end, Duration elapsed, ActionType type})? stop() {
+    final startedAt = _startedAt;
+    if (startedAt == null) return null;
+    final elapsed = _elapsed;
     final result = (
-      start: _startedAt!,
-      end: _startedAt!.add(_elapsed),
-      elapsed: _elapsed,
+      start: startedAt,
+      end: startedAt.add(elapsed),
+      elapsed: elapsed,
       type: _type,
     );
     _ticker?.cancel();

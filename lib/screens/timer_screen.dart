@@ -124,67 +124,88 @@ class TimerScreen extends StatelessWidget {
 
   Future<void> _stop(BuildContext context, TimerProvider timer) async {
     final result = timer.stop();
-    final notesController = TextEditingController();
-    final titleController = TextEditingController(text: result.type.label);
-    if (!context.mounted) return;
-    final save = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Créer le complément'),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: 'Titre'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: notesController,
-                minLines: 2,
-                maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Notes'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Ignorer'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Enregistrer'),
-          ),
-        ],
-      ),
-    );
-    if (save == true && context.mounted) {
-      await context.read<ActivityProvider>().save(
-        Activity(
-          id: const Uuid().v4(),
-          title: titleController.text.trim().isEmpty
-              ? result.type.label
-              : titleController.text.trim(),
-          type: result.type,
-          date: result.start,
-          startTime: result.start,
-          endTime: result.end,
-          platform: ActivityPlatform.other,
-          notes: notesController.text.trim(),
-          status: ActivityStatus.draft,
-        ),
-      );
+    if (result == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complément ajouté au dossier.')),
+          const SnackBar(content: Text('Aucune session à arrêter.')),
         );
       }
+      return;
     }
-    titleController.dispose();
-    notesController.dispose();
+    final notesController = TextEditingController();
+    final titleController = TextEditingController(text: result.type.label);
+    try {
+      if (!context.mounted) return;
+      final save = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Créer le complément'),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 480,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(labelText: 'Titre'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesController,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: const InputDecoration(labelText: 'Notes'),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Durée mesurée : ${_clock(result.elapsed)}',
+                      style: Theme.of(dialogContext).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Ignorer'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Enregistrer'),
+            ),
+          ],
+        ),
+      );
+      if (save == true && context.mounted) {
+        await context.read<ActivityProvider>().save(
+          Activity(
+            id: const Uuid().v4(),
+            title: titleController.text.trim().isEmpty
+                ? result.type.label
+                : titleController.text.trim(),
+            type: result.type,
+            date: result.start,
+            startTime: result.start,
+            endTime: result.end,
+            platform: ActivityPlatform.other,
+            notes: notesController.text.trim(),
+            status: ActivityStatus.draft,
+          ),
+        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Complément ajouté au dossier.')),
+          );
+        }
+      }
+    } finally {
+      titleController.dispose();
+      notesController.dispose();
+    }
   }
 }
