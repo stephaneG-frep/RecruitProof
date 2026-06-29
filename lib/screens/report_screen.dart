@@ -110,6 +110,32 @@ class _ReportScreenState extends State<ReportScreen> {
                         '${DateFormat('dd/MM/yyyy').format(_start)} – ${DateFormat('dd/MM/yyyy').format(_end)}',
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ActionChip(
+                          avatar: const Icon(Icons.calendar_view_month),
+                          label: const Text('Mois en cours'),
+                          onPressed: _selectCurrentMonth,
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.view_week_outlined),
+                          label: const Text('Semaine en cours'),
+                          onPressed: _selectCurrentWeek,
+                        ),
+                        ActionChip(
+                          avatar: const Icon(Icons.all_inclusive),
+                          label: const Text('Tout inclure'),
+                          onPressed: () => _selectAllPeriod(
+                            activities: all,
+                            proofs: context.read<ProofProvider>().proofs,
+                            importedItems: importedProvider.items,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 14),
                     _ManualCounters(
                       applications: _applicationsCount,
@@ -141,6 +167,13 @@ class _ReportScreenState extends State<ReportScreen> {
                             ),
                           ) +
                           _manualReportDuration(),
+                    ),
+                    const SizedBox(height: 14),
+                    _IncludedPreview(
+                      complements: selected,
+                      proofs: proofs,
+                      totalComplements: all.length,
+                      totalProofs: context.watch<ProofProvider>().proofs.length,
                     ),
                     const SizedBox(height: 18),
                     _SourceImportsCard(
@@ -205,7 +238,9 @@ class _ReportScreenState extends State<ReportScreen> {
   List<Activity> _selectedActivities(List<Activity> all) =>
       all
           .where(
-            (item) => !item.date.isBefore(_start) && !item.date.isAfter(_end),
+            (item) =>
+                !_startOfDay(item.date).isBefore(_startOfDay(_start)) &&
+                !_startOfDay(item.date).isAfter(_startOfDay(_end)),
           )
           .toList()
         ..sort((a, b) => b.date.compareTo(a.date));
@@ -220,7 +255,10 @@ class _ReportScreenState extends State<ReportScreen> {
           (proof) =>
               ids.contains(proof.id) ||
               (proof.activityId != null &&
-                  activities.any((item) => item.id == proof.activityId)),
+                  activities.any((item) => item.id == proof.activityId)) ||
+              (proof.activityId == null &&
+                  !proof.addedAt.isBefore(_start) &&
+                  !proof.addedAt.isAfter(_end)),
         )
         .toList();
   }
@@ -246,6 +284,46 @@ class _ReportScreenState extends State<ReportScreen> {
       });
     }
   }
+
+  void _selectCurrentMonth() {
+    final now = DateTime.now();
+    setState(() {
+      _start = DateTime(now.year, now.month);
+      _end = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    });
+  }
+
+  void _selectCurrentWeek() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    setState(() {
+      _start = today.subtract(Duration(days: now.weekday - 1));
+      _end = _start.add(const Duration(days: 6, hours: 23, minutes: 59));
+    });
+  }
+
+  void _selectAllPeriod({
+    required List<Activity> activities,
+    required List<ProofFile> proofs,
+    required List<ImportedReportItem> importedItems,
+  }) {
+    final dates = <DateTime>[
+      ...activities.map((item) => item.date),
+      ...proofs.map((item) => item.addedAt),
+      ...importedItems.map((item) => item.date),
+      DateTime.now(),
+    ];
+    dates.sort();
+    final first = dates.first;
+    final last = dates.last;
+    setState(() {
+      _start = DateTime(first.year, first.month, first.day);
+      _end = DateTime(last.year, last.month, last.day, 23, 59, 59);
+    });
+  }
+
+  DateTime _startOfDay(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
 
   Future<void> _export({required bool zip}) async {
     setState(() => _generating = true);
@@ -446,6 +524,101 @@ class _ManualCounters extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _IncludedPreview extends StatelessWidget {
+  const _IncludedPreview({
+    required this.complements,
+    required this.proofs,
+    required this.totalComplements,
+    required this.totalProofs,
+  });
+
+  final List<Activity> complements;
+  final List<ProofFile> proofs;
+  final int totalComplements;
+  final int totalProofs;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final missingComplements = totalComplements - complements.length;
+    final missingProofs = totalProofs - proofs.length;
+    return Card(
+      color: complements.isEmpty && totalComplements > 0
+          ? scheme.errorContainer
+          : null,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Inclus dans ce PDF',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${complements.length} complément(s) • ${proofs.length} preuve(s)',
+            ),
+            if (missingComplements > 0 || missingProofs > 0) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Hors période actuelle : $missingComplements complément(s), $missingProofs preuve(s). Utilisez “Tout inclure” si besoin.',
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+            ],
+            if (complements.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ...complements
+                  .take(3)
+                  .map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.note_alt_outlined, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            ],
+            if (proofs.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...proofs
+                  .take(3)
+                  .map(
+                    (proof) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.attachment_outlined, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              proof.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
