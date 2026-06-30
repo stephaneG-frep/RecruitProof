@@ -101,15 +101,14 @@ class HelpScreen extends StatelessWidget {
           ),
           const _GuideCard(
             icon: Icons.timer_outlined,
-            title: 'Chrono : mesurer une session',
+            title: 'Temps : déclarer une estimation',
             color: Colors.deepPurple,
             description:
-                'Choisissez un type, démarrez le chrono, mettez-le en pause '
-                'si nécessaire, puis arrêtez-le. RecruitProof propose alors de '
-                'créer automatiquement un complément.',
+                'Choisissez un type de complément, estimez le temps passé par '
+                'tranches de 10 minutes, ajoutez une note, puis enregistrez.',
             tips: [
-              'Le chrono ne surveille aucune autre application.',
-              'Ajoutez une note à la fin pour vous souvenir du travail réalisé.',
+              'RecruitProof ne surveille aucune autre application.',
+              'L’estimation est volontaire et sert à compléter le dossier.',
             ],
           ),
           const _GuideCard(

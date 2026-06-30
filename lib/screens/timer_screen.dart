@@ -4,37 +4,53 @@ import 'package:uuid/uuid.dart';
 
 import '../models/activity.dart';
 import '../providers/activity_provider.dart';
-import '../providers/timer_provider.dart';
 
-class TimerScreen extends StatelessWidget {
+class TimerScreen extends StatefulWidget {
   const TimerScreen({super.key});
 
   @override
+  State<TimerScreen> createState() => _TimerScreenState();
+}
+
+class _TimerScreenState extends State<TimerScreen> {
+  final _title = TextEditingController();
+  final _notes = TextEditingController();
+  ActionType _type = ActionType.offerSearch;
+  int _minutes = 30;
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final timer = context.watch<TimerProvider>();
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
         Text(
-          'Chronomètre',
+          'Temps estimé',
           style: Theme.of(
             context,
           ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         const Text(
-          'Mesurez une session ponctuelle, puis ajoutez-la comme complément au dossier.',
+          'Déclarez simplement le temps passé par tranches de 10 minutes, sans mesure automatique.',
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 22),
         Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
+            constraints: const BoxConstraints(maxWidth: 620),
             child: Card(
               child: Padding(
-                padding: const EdgeInsets.all(28),
+                padding: const EdgeInsets.all(22),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     DropdownButtonFormField<ActionType>(
-                      initialValue: timer.type,
+                      initialValue: _type,
                       decoration: const InputDecoration(
                         labelText: 'Type de complément',
                       ),
@@ -46,57 +62,45 @@ class TimerScreen extends StatelessWidget {
                             ),
                           )
                           .toList(),
-                      onChanged: timer.hasSession
-                          ? null
-                          : (value) => timer.setType(value!),
+                      onChanged: (value) => setState(() => _type = value!),
                     ),
-                    const SizedBox(height: 34),
-                    Text(
-                      _clock(timer.elapsed),
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _title,
+                      decoration: InputDecoration(
+                        labelText: 'Titre du complément',
+                        hintText: _type.label,
+                        prefixIcon: const Icon(Icons.title),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      timer.isRunning
-                          ? 'Session en cours'
-                          : timer.hasSession
-                          ? 'Session en pause'
-                          : 'Prêt à démarrer',
+                    const SizedBox(height: 22),
+                    _DurationPicker(
+                      minutes: _minutes,
+                      onChanged: (value) => setState(() => _minutes = value),
                     ),
-                    const SizedBox(height: 30),
-                    if (!timer.hasSession)
-                      FilledButton.icon(
-                        onPressed: timer.start,
-                        icon: const Icon(Icons.play_arrow),
-                        label: const Text('Démarrer une session'),
-                      )
-                    else
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          FilledButton.tonalIcon(
-                            onPressed: timer.isRunning
-                                ? timer.pause
-                                : timer.resume,
-                            icon: Icon(
-                              timer.isRunning ? Icons.pause : Icons.play_arrow,
-                            ),
-                            label: Text(
-                              timer.isRunning ? 'Pause' : 'Reprendre',
-                            ),
-                          ),
-                          FilledButton.icon(
-                            onPressed: () => _stop(context, timer),
-                            icon: const Icon(Icons.stop),
-                            label: const Text('Arrêter'),
-                          ),
-                        ],
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: _notes,
+                      minLines: 4,
+                      maxLines: 8,
+                      keyboardType: TextInputType.multiline,
+                      decoration: const InputDecoration(
+                        labelText: 'Note pour le dossier',
+                        hintText:
+                            'Ex. Mise à jour CV, veille technologique, apprentissage autodidacte…',
+                        alignLabelWithHint: true,
+                        prefixIcon: Icon(Icons.notes_outlined),
                       ),
+                    ),
+                    const SizedBox(height: 22),
+                    FilledButton.icon(
+                      onPressed: _save,
+                      icon: const Icon(Icons.save_outlined),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        child: Text('Ajouter au dossier'),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -107,9 +111,9 @@ class TimerScreen extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: Icon(Icons.privacy_tip_outlined),
-            title: Text('Votre complément reste privé'),
+            title: Text('Estimation volontaire'),
             subtitle: Text(
-              'Le chronomètre ne surveille aucune application. Il compte uniquement le temps après votre action explicite.',
+              'RecruitProof ne surveille aucune application. Vous déclarez vous-même un temps raisonnable pour compléter votre dossier.',
             ),
           ),
         ),
@@ -117,158 +121,112 @@ class TimerScreen extends StatelessWidget {
     );
   }
 
-  String _clock(Duration value) {
-    String two(int number) => number.toString().padLeft(2, '0');
-    return '${two(value.inHours)}:${two(value.inMinutes.remainder(60))}:${two(value.inSeconds.remainder(60))}';
-  }
-
-  Future<void> _stop(BuildContext context, TimerProvider timer) async {
-    final result = timer.stop();
-    if (result == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Aucune session à arrêter.')),
-        );
-      }
-      return;
-    }
-    if (!context.mounted) return;
-    final draft = await Navigator.of(context).push<_TimerDraft>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => _TimerDraftScreen(
-          initialTitle: result.type.label,
-          durationLabel: _clock(result.elapsed),
-        ),
+  Future<void> _save() async {
+    final now = DateTime.now();
+    final start = now.subtract(Duration(minutes: _minutes));
+    final title = _title.text.trim().isEmpty ? _type.label : _title.text.trim();
+    await context.read<ActivityProvider>().save(
+      Activity(
+        id: const Uuid().v4(),
+        title: title,
+        type: _type,
+        date: now,
+        startTime: start,
+        endTime: now,
+        platform: ActivityPlatform.other,
+        notes: _notes.text.trim(),
+        status: ActivityStatus.draft,
       ),
     );
-    if (draft != null && context.mounted) {
-      await context.read<ActivityProvider>().save(
-        Activity(
-          id: const Uuid().v4(),
-          title: draft.title.trim().isEmpty
-              ? result.type.label
-              : draft.title.trim(),
-          type: result.type,
-          date: result.start,
-          startTime: result.start,
-          endTime: result.end,
-          platform: ActivityPlatform.other,
-          notes: draft.notes.trim(),
-          status: ActivityStatus.draft,
-        ),
-      );
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complément ajouté au dossier.')),
-        );
-      }
-    }
+    if (!mounted) return;
+    _title.clear();
+    _notes.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Complément ajouté avec ${_formatMinutes(_minutes)}.'),
+      ),
+    );
   }
 }
 
-class _TimerDraft {
-  const _TimerDraft({required this.title, required this.notes});
+class _DurationPicker extends StatelessWidget {
+  const _DurationPicker({required this.minutes, required this.onChanged});
 
-  final String title;
-  final String notes;
-}
-
-class _TimerDraftScreen extends StatefulWidget {
-  const _TimerDraftScreen({
-    required this.initialTitle,
-    required this.durationLabel,
-  });
-
-  final String initialTitle;
-  final String durationLabel;
-
-  @override
-  State<_TimerDraftScreen> createState() => _TimerDraftScreenState();
-}
-
-class _TimerDraftScreenState extends State<_TimerDraftScreen> {
-  late final TextEditingController _title;
-  late final TextEditingController _notes;
-
-  @override
-  void initState() {
-    super.initState();
-    _title = TextEditingController(text: widget.initialTitle);
-    _notes = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _title.dispose();
-    _notes.dispose();
-    super.dispose();
-  }
+  final int minutes;
+  final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Complément chronométré'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(
-              context,
-              _TimerDraft(title: _title.text, notes: _notes.text),
-            ),
-            child: const Text('Enregistrer'),
-          ),
-        ],
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(18),
       ),
-      body: ListView(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          20,
-          20,
-          20 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
+      child: Column(
         children: [
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.timer_outlined),
-              title: const Text('Durée mesurée'),
-              subtitle: Text(widget.durationLabel),
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _title,
-            decoration: const InputDecoration(labelText: 'Titre'),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _notes,
-            minLines: 6,
-            maxLines: 12,
-            keyboardType: TextInputType.multiline,
-            decoration: const InputDecoration(
-              labelText: 'Note pour le dossier',
-              alignLabelWithHint: true,
-            ),
-          ),
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: () => Navigator.pop(
+          Text(
+            'Temps déclaré',
+            style: Theme.of(
               context,
-              _TimerDraft(title: _title.text, notes: _notes.text),
-            ),
-            icon: const Icon(Icons.save_outlined),
-            label: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
-              child: Text('Enregistrer le complément'),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _formatMinutes(minutes),
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: scheme.primary,
             ),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Ignorer'),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: minutes <= 10
+                      ? null
+                      : () => onChanged(minutes - 10),
+                  icon: const Icon(Icons.remove),
+                  label: const Text('-10 min'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => onChanged(minutes + 10),
+                  icon: const Icon(Icons.add),
+                  label: const Text('+10 min'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [10, 20, 30, 60, 90, 120]
+                .map(
+                  (value) => ChoiceChip(
+                    label: Text(_formatMinutes(value)),
+                    selected: minutes == value,
+                    onSelected: (_) => onChanged(value),
+                  ),
+                )
+                .toList(),
           ),
         ],
       ),
     );
   }
+}
+
+String _formatMinutes(int minutes) {
+  final hours = minutes ~/ 60;
+  final remaining = minutes % 60;
+  if (hours == 0) return '$minutes min';
+  if (remaining == 0) return '${hours}h';
+  return '${hours}h ${remaining.toString().padLeft(2, '0')}';
 }

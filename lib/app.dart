@@ -102,7 +102,7 @@ class _AppShellState extends State<AppShell> {
     NavigationDestination(
       icon: Icon(Icons.timer_outlined),
       selectedIcon: Icon(Icons.timer),
-      label: 'Chrono',
+      label: 'Temps',
     ),
     NavigationDestination(
       icon: Icon(Icons.attachment_outlined),
