@@ -162,7 +162,7 @@ class HelpScreen extends StatelessWidget {
                   _StatusLine(
                     color: Colors.grey,
                     title: 'Brouillon',
-                    description: 'L’activité est enregistrée mais incomplète.',
+                    description: 'Le complément est enregistré mais incomplet.',
                   ),
                   Divider(height: 26),
                   _StatusLine(
@@ -176,7 +176,7 @@ class HelpScreen extends StatelessWidget {
                     color: Colors.green,
                     title: 'Validé',
                     description:
-                        'L’activité est prête à apparaître dans votre dossier.',
+                        'Le complément est prêt à apparaître dans votre dossier.',
                   ),
                 ],
               ),
@@ -202,7 +202,7 @@ class HelpScreen extends StatelessWidget {
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'RecruitProof n’espionne pas votre activité, ne crée '
+                          'RecruitProof n’espionne pas vos actions, ne crée '
                           'aucun compte et n’envoie pas vos données vers un '
                           'serveur. Vous choisissez chaque information et chaque '
                           'preuve ajoutée.',
@@ -280,7 +280,7 @@ class _Workflow extends StatelessWidget {
           _WorkflowStep(
             icon: Icons.add_task,
             title: '1. Notez',
-            text: 'Créez une activité après votre démarche.',
+            text: 'Ajoutez un complément après votre démarche.',
           ),
           _WorkflowStep(
             icon: Icons.attach_file,

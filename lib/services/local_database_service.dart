@@ -189,7 +189,7 @@ class LocalDatabaseService {
       startTime: start,
       endTime: start.add(Duration(minutes: minutes)),
       platform: platform,
-      notes: 'Activité de démonstration, modifiable ou supprimable.',
+      notes: 'Complément de démonstration, modifiable ou supprimable.',
       status: ActivityStatus.validated,
     );
   }

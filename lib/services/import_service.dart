@@ -83,8 +83,7 @@ class ImportService {
           category: 'Rapport preuve',
           platform: source.label,
           status: 'Preuve jointe',
-          notes:
-              'Rapport PDF ajouté manuellement comme preuve source du dossier.',
+          notes: 'Rapport PDF ajouté manuellement comme preuve du dossier.',
           proofCount: 1,
         ),
       );
